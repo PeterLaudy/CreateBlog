@@ -2,7 +2,6 @@
   "profiles": {
     "CreateBlog": {
       "commandName": "Project",
-      "commandLineArgs": "D:\\TestBlog\\blog"
-    }
-  }
+      "commandLineArgs": ""
+    }  }
 }

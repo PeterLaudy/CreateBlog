@@ -7,7 +7,7 @@ namespace CreateBlog
     {
         public static void CheckAllImages()
         {
-            var images = new DirectoryInfo(Path.Combine(Settings.RootFolder!.FullName, "images"));
+            var images = new DirectoryInfo(Path.Combine(Settings.RootFolder!, "images"));
             CheckAllImages(images);
         }
 

@@ -8,8 +8,6 @@ namespace CreateBlog
     {
         public static void Main(string[] args)
         {
-            Settings.IndentChars = "  ";
-            Settings.RootFolder = new(args[0]);
             CheckImages.CheckAllImages();
             BlogContent.CreateBlogContent();
         }

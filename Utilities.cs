@@ -11,7 +11,7 @@ namespace CreateBlog
         {
             return Path.GetRelativePath(
                 Path.GetDirectoryName(htmlFileName)!,
-                FindImage(Settings.RootFolder!, imgFileName)!
+                FindImage(new DirectoryInfo(Settings.RootFolder!), imgFileName)!
             ).Replace('\\', '/');
         }
 

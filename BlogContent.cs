@@ -10,10 +10,17 @@ namespace CreateBlog
 {
     internal class BlogContent
     {
+        private class PageInfo
+        {
+            public string? Link { get; set; }
+            public string? Icon { get; set; }
+            public string? Title { get; set; }
+        }
+
         public static void CreateBlogContent()
         {
-            var indexFileName = Path.Combine(Settings.RootFolder!.FullName, "index.xml");
-            var availablePages = new Dictionary<string, string>();
+            var indexFileName = Path.Combine(Settings.RootFolder!, "index.xml");
+            var availablePages = new List<PageInfo>();
 
             var xmlDoc = new XmlDocument();
             xmlDoc.Load(indexFileName);
@@ -24,30 +31,37 @@ namespace CreateBlog
             var indexDiv = htmlDoc.SelectSingleNode("//div[@id='content']")!;
             foreach (XmlNode chapter in xmlDoc.SelectNodes("//chapters/chapter")!)
             {
-                var subdir = chapter.InnerText.Replace(" ", string.Empty).ToLower();
-                var iconName = chapter.Attributes!["icon"]!.Value;
+                var link = chapter.Attributes!["link"]!.Value;
+                var icon = chapter.Attributes!["icon"]!.Value;
+                var title = chapter.InnerText;
 
                 // Create the link in the main blog page to the first page of the chapter.
                 var p = htmlDoc.CreateNodeWithAttributes("p", [], []);
-                var a = htmlDoc.CreateNodeWithAttributes("a", ["class", "href"], ["no_decoration", $"./{subdir}/page1.html"]);
-                var img = htmlDoc.CreateNodeWithAttributes("img", ["class", "src"], ["icon", Utilities.FindImage(iconName, indexFileName)]);
+                var a = htmlDoc.CreateNodeWithAttributes("a", ["class", "href"], ["no_decoration", $"./{link}/page1.html"]);
+                var img = htmlDoc.CreateNodeWithAttributes("img", ["class", "src"], ["icon", Utilities.FindImage(icon, indexFileName)]);
 
                 indexDiv.AppendChild(p);
                 p.AppendChild(a);
                 a.AppendChild(img);
-                a.AppendChild(htmlDoc.CreateTextNode(chapter.InnerText));
+                a.AppendChild(htmlDoc.CreateTextNode(title));
 
                 // Create all pages for the found chapter.
                 var index = 1;
-                while (File.Exists(Path.Combine(Settings.RootFolder!.FullName, subdir, $"page{index}.xml")))
+                while (File.Exists(Path.Combine(Settings.RootFolder!, link, $"page{index}.xml")))
                 {
-                    availablePages.Add($"{subdir}/page{index}.html", Utilities.FindImage(iconName, Path.Combine(Settings.RootFolder!.FullName, "new", "index.html")));
+                    availablePages.Add(new PageInfo() {
+                        Link = $"{link}/page{index}.html",
+                        Icon = Utilities.FindImage(icon, Path.Combine(Settings.RootFolder!, "new", "index.html")) ,
+                        Title = title
+                    });
                     CreateBlogPage(
-                        char.ToUpper(subdir[0]) + subdir.Substring(1).ToLower(),
+                        link,
+                        icon,
+                        title,
                         index,
-                        File.Exists(Path.Combine(Settings.RootFolder!.FullName, subdir, $"page{index - 1}.xml")),
-                        File.Exists(Path.Combine(Settings.RootFolder!.FullName, subdir, $"page{index + 1}.xml")),
-                        iconName
+                        File.Exists(Path.Combine(Settings.RootFolder!, link, $"page{index - 1}.xml")),
+                        File.Exists(Path.Combine(Settings.RootFolder!, link, $"page{index + 1}.xml")),
+                        icon
                     );
                     index++;
                 }
@@ -57,19 +71,19 @@ namespace CreateBlog
             SaveHtmlPage(htmlDoc, Path.ChangeExtension(indexFileName, ".html"));
 
             // Save the JSON formatted list of available links.
-            SaveJsonFile(availablePages.ToArray(), Path.Combine(Settings.RootFolder!.FullName, "script", "availablePages.json"));
+            SaveJsonFile(availablePages.ToArray(), Path.Combine(Settings.RootFolder!, "script", "availablePages.json"));
         }
 
-        private static void CreateBlogPage(string subject, int index, bool prev, bool next, string iconName)
+        private static void CreateBlogPage(string link, string icon, string title, int index, bool prev, bool next, string iconName)
         {
-            var fileName = Path.Combine(Settings.RootFolder!.FullName, subject, $"page{index}.xml");
+            var fileName = Path.Combine(Settings.RootFolder!, link, $"page{index}.xml");
 
             var htmlDoc = new XmlDocument();
             htmlDoc.Load("page.html");
 
-            htmlDoc.DocumentElement!.SelectSingleNode("/html/head/title")!.InnerText = $"{subject} {index}";
+            htmlDoc.DocumentElement!.SelectSingleNode("/html/head/title")!.InnerText = $"{title} {index}";
 
-            var title = htmlDoc.DocumentElement!.SelectSingleNode("//p[@id='title']")!;
+            var titleNode = htmlDoc.DocumentElement!.SelectSingleNode("//p[@id='title']")!;
             var image = htmlDoc.CreateElement("img");
 
             var attribute = htmlDoc.CreateAttribute("class");
@@ -79,9 +93,9 @@ namespace CreateBlog
             attribute = htmlDoc.CreateAttribute("src");
             attribute.Value = Utilities.FindImage(iconName, fileName);
             image.Attributes.Append(attribute);
-            title.AppendChild(image);
+            titleNode.AppendChild(image);
 
-            title.AppendChild(htmlDoc.CreateTextNode($"{subject} {index}"));
+            titleNode.AppendChild(htmlDoc.CreateTextNode($"{title} {index}"));
 
             AddNavigationSection(htmlDoc, index, prev, next, fileName);
 
