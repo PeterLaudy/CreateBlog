@@ -1,21 +1,37 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Xml;
+using System.Xml.Linq;
 
 namespace CreateBlog
 {
+    /// <summary>
+    /// Class containing utility methods for the application.
+    /// </summary>
     internal static class Utilities
     {
+        /// <summary>
+        /// Find the relative path to the given image file.
+        /// </summary>
+        /// <param name="imgFileName">The name of the image to file to which a relative link is requested.</param>
+        /// <param name="htmlFileName">The absolute path to the file in which the link will be included.</param>
         public static string FindImage(string imgFileName, string htmlFileName)
         {
+            // Since we convert all filenames to lowercase, we also must make that same change here. 
+            imgFileName = imgFileName.ToLower();
             return Path.GetRelativePath(
                 Path.GetDirectoryName(htmlFileName)!,
-                FindImage(new DirectoryInfo(Settings.RootFolder!), imgFileName)!
-            ).Replace('\\', '/');
+                FindImage(imgFileName, new DirectoryInfo(Settings.RootFolder!))!).Replace('\\', '/');
         }
 
-        private static string? FindImage(DirectoryInfo folder, string imgFileName)
+        /// <summary>
+        /// Recursively find the given image file.
+        /// </summary>
+        /// <param name="imgFileName">The name of the image to file to which a relative link is requested.</param>
+        /// <param name="folder">The folder in which the file is searched recursively.</param>
+        private static string? FindImage(string imgFileName, DirectoryInfo folder)
         {
             var result = folder.GetFiles().ToList().FirstOrDefault(file => file.Name == imgFileName)?.FullName;
             if (null == result)
@@ -24,7 +40,7 @@ namespace CreateBlog
                 {
                     if (null == result)
                     {
-                        result = FindImage(dir, imgFileName);
+                        result = FindImage(imgFileName, dir);
                         return null != result;
                     }
                     else
@@ -37,6 +53,11 @@ namespace CreateBlog
             return result!;
         }
 
+        /// <summary>
+        /// Set the indentation of the given text (from a text node).
+        /// </summary>
+        /// <param name="s">The string for which the indentation must be set.</param>
+        /// <param name="parent">The parent node of the text node.</param>
         public static string SetCorrectIndentForText(string s, XmlNode parent)
         {
             var indent = Environment.NewLine;
@@ -51,6 +72,36 @@ namespace CreateBlog
 
             var result = string.Join(indent, lines);
             return result;
+        }
+
+        /// <summary>
+        /// Save the html content to file.
+        /// </summary>
+        /// <remarks>
+        /// It will use an XDocument so we can ommit the xml header in the file.
+        /// </remarks>
+        /// <param name="htmlDoc">The html document to save.</param>
+        /// <param name="fileName">The full path to the file to save.</param>
+        public static void SaveHtmlPage(XmlDocument htmlDoc, string fileName)
+        {
+            using var xmlReader = new XmlNodeReader(htmlDoc);
+            var xDoc = XDocument.Load(xmlReader);
+            xDoc.DocumentType!.InternalSubset = null;
+            using var xmlWriter = XmlWriter.Create(fileName, new XmlWriterSettings() { OmitXmlDeclaration = true, Indent = true, IndentChars = Settings.IndentChars! });
+            xDoc.Save(xmlWriter);
+        }
+
+        /// <summary>
+        /// Save the json content to file.
+        /// </summary>
+        /// <param name="data">The data to save to file in JSON format.</param>
+        /// <param name="fileName">The full path to the JSON file.</param>
+        public static void SaveJsonFile(object data, string fileName)
+        {
+            var jsonData = JsonSerializer.Serialize(data);
+            using var writer = new StreamWriter(fileName);
+            writer.WriteLine(jsonData);
+            writer.Close();
         }
     }
 }

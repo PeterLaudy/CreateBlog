@@ -1,22 +1,37 @@
-using System.Linq;
-using System.IO;
-using System.Xml;
-using System.Xml.Linq;
 using System.Collections.Generic;
-using System;
-using System.Text.Json;
+using System.IO;
+using System.Linq;
+using System.Xml;
 
 namespace CreateBlog
 {
+    /// <summary>
+    /// Class used to convert the blog content in xml format to html files.
+    /// </summary>
     internal class BlogContent
     {
+        /// <summary>
+        /// Class used to create the availablePages.json file.
+        /// </summary>
         private class PageInfo
         {
+            /// <summary>The link of the available page.</summary>
             public string? Link { get; set; }
+            /// <summary>The relative link to the icon file of the available page.</summary>
             public string? Icon { get; set; }
+            /// <summary>The title of the available page.</summary>
             public string? Title { get; set; }
         }
 
+        /// <summary>
+        /// Find all page{n}.xml files and create html files from them.
+        /// The files are searched for in the chapters, which are defined in the
+        /// index.xml file. The links to the pages are included in the index.html file.
+        /// </summary>
+        /// <remarks>
+        /// Note that the code will search for consecutive file numbers, starting at 1.
+        /// If a file cannot be found, it will stop and continue with the next chapter.
+        /// </remarks>
         public static void CreateBlogContent()
         {
             var indexFileName = Path.Combine(Settings.RootFolder!, "index.xml");
@@ -49,9 +64,10 @@ namespace CreateBlog
                 var index = 1;
                 while (File.Exists(Path.Combine(Settings.RootFolder!, link, $"page{index}.xml")))
                 {
-                    availablePages.Add(new PageInfo() {
+                    availablePages.Add(new PageInfo()
+                    {
                         Link = $"{link}/page{index}.html",
-                        Icon = Utilities.FindImage(icon, Path.Combine(Settings.RootFolder!, "new", "index.html")) ,
+                        Icon = Utilities.FindImage(icon, Path.Combine(Settings.RootFolder!, "new", "index.html")),
                         Title = title
                     });
                     CreateBlogPage(
@@ -60,21 +76,29 @@ namespace CreateBlog
                         title,
                         index,
                         File.Exists(Path.Combine(Settings.RootFolder!, link, $"page{index - 1}.xml")),
-                        File.Exists(Path.Combine(Settings.RootFolder!, link, $"page{index + 1}.xml")),
-                        icon
+                        File.Exists(Path.Combine(Settings.RootFolder!, link, $"page{index + 1}.xml"))
                     );
                     index++;
                 }
             }
 
             // Save the index.html file of the blog.
-            SaveHtmlPage(htmlDoc, Path.ChangeExtension(indexFileName, ".html"));
+            Utilities.SaveHtmlPage(htmlDoc, Path.ChangeExtension(indexFileName, ".html"));
 
             // Save the JSON formatted list of available links.
-            SaveJsonFile(availablePages.ToArray(), Path.Combine(Settings.RootFolder!, "script", "availablePages.json"));
+            Utilities.SaveJsonFile(availablePages.ToArray(), Path.Combine(Settings.RootFolder!, "script", "availablePages.json"));
         }
 
-        private static void CreateBlogPage(string link, string icon, string title, int index, bool prev, bool next, string iconName)
+        /// <summary>
+        /// Create a single blog page.
+        /// </summary>
+        /// <param name="link">The relative link to the folder containing the page.</param>
+        /// <param name="icon">The name of the file contining the icon for the page.</param>
+        /// <param name="title">The title of the page.</param>
+        /// <param name="index">The index number of the page.</param>
+        /// <param name="prev">True if there is a previous page.</param>
+        /// <param name="next">True if there is a next page.</param>
+        private static void CreateBlogPage(string link, string icon, string title, int index, bool prev, bool next)
         {
             var fileName = Path.Combine(Settings.RootFolder!, link, $"page{index}.xml");
 
@@ -83,26 +107,27 @@ namespace CreateBlog
 
             htmlDoc.DocumentElement!.SelectSingleNode("/html/head/title")!.InnerText = $"{title} {index}";
 
+            var image = htmlDoc.CreateNodeWithAttributes("img", ["class", "src"], ["icon", Utilities.FindImage(icon, fileName)]);
+
             var titleNode = htmlDoc.DocumentElement!.SelectSingleNode("//p[@id='title']")!;
-            var image = htmlDoc.CreateElement("img");
-
-            var attribute = htmlDoc.CreateAttribute("class");
-            attribute.Value = "icon";
-            image.Attributes.Append(attribute);
-
-            attribute = htmlDoc.CreateAttribute("src");
-            attribute.Value = Utilities.FindImage(iconName, fileName);
-            image.Attributes.Append(attribute);
             titleNode.AppendChild(image);
-
             titleNode.AppendChild(htmlDoc.CreateTextNode($"{title} {index}"));
 
             AddNavigationSection(htmlDoc, index, prev, next, fileName);
 
             ConvertBlogContent(htmlDoc, fileName);
-            SaveHtmlPage(htmlDoc, Path.ChangeExtension(fileName, ".html"));
+            Utilities.SaveHtmlPage(htmlDoc, Path.ChangeExtension(fileName, ".html"));
         }
 
+        /// <summary>
+        /// Add the section containg the navigation controls, like the home button and the
+        /// previous and next arrows.
+        /// </summary>
+        /// <param name="htmlDoc">The html document to which the control should be added.</param>
+        /// <param name="index">The index number of the page.</param>
+        /// <param name="prev">True if there is a previous page.</param>
+        /// <param name="next">True if there is a next page.</param>
+        /// <param name="fileName">The full path to the file, used to create relative links to the icons.</param>
         private static void AddNavigationSection(XmlDocument htmlDoc, int index, bool prev, bool next, string fileName)
         {
             var title = htmlDoc.DocumentElement!.SelectSingleNode("//p[@id='title']")!;
@@ -146,6 +171,11 @@ namespace CreateBlog
             }
         }
 
+        /// <summary>
+        /// The actual conversion of the xml file containing the content of the blog to the html file used on the web-server.
+        /// </summary>
+        /// <param name="htmlDoc">The html document to which the blog content should be added.</param>
+        /// <param name="fileName">The full path to the file, used to create relative links to the icons.</param>
         private static void ConvertBlogContent(XmlDocument htmlDoc, string fileName)
         {
             var contentDiv = htmlDoc.DocumentElement!.SelectSingleNode("//div[@id='content']")!;
@@ -209,23 +239,6 @@ namespace CreateBlog
                     xmlNode = xmlNode.NextSibling;
                 }
             }
-        }
-
-        private static void SaveHtmlPage(XmlDocument htmlDoc, string fileName)
-        {
-            using var xmlReader = new XmlNodeReader(htmlDoc);
-            var xDoc = XDocument.Load(xmlReader);
-            xDoc.DocumentType!.InternalSubset = null;
-            using var xmlWriter = XmlWriter.Create(fileName, new XmlWriterSettings() { OmitXmlDeclaration = true, Indent = true });
-            xDoc.Save(xmlWriter);
-        }
-
-        private static void SaveJsonFile(object data, string fileName)
-        {
-            var jsonData = JsonSerializer.Serialize(data);
-            using var writer = new StreamWriter(fileName);
-            writer.WriteLine(jsonData);
-            writer.Close();
         }
     }
 }
