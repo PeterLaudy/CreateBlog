@@ -11,6 +11,8 @@
         /// <param name="args">Command line arguments (currently not used).</param>
         public static void Main(string[] args)
         {
+            Settings.InitSettings();
+            FoldersToCopy.CopyAllStaticFolders();
             CheckImages.CheckAllImages();
             BlogContent.CreateBlogContent();
         }

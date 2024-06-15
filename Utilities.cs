@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -12,7 +13,7 @@ namespace CreateBlog
     /// </summary>
     internal static class Utilities
     {
-        /// <summary>
+         /// <summary>
         /// Find the relative path to the given image file.
         /// </summary>
         /// <param name="imgFileName">The name of the image to file to which a relative link is requested.</param>
@@ -21,9 +22,15 @@ namespace CreateBlog
         {
             // Since we convert all filenames to lowercase, we also must make that same change here. 
             imgFileName = imgFileName.ToLower();
-            return Path.GetRelativePath(
-                Path.GetDirectoryName(htmlFileName)!,
-                FindImage(imgFileName, new DirectoryInfo(Settings.RootFolder!))!).Replace('\\', '/');
+            var imgFullName = FindImage(imgFileName, new DirectoryInfo(Settings.SourceRootFolder!));
+            if (null != imgFullName)
+            {
+                var img = Path.Combine(Settings.HtmlRootFolder!, imgFullName!.Substring(Settings.SourceRootFolder!.Length));
+                File.Copy(imgFullName!, img!, true);
+                return Path.GetRelativePath(Path.GetDirectoryName(htmlFileName)!, img!).Replace('\\', '/');
+            }
+
+            throw new FileNotFoundException("Image could not be found.", imgFileName, null);
         }
 
         /// <summary>
@@ -36,7 +43,7 @@ namespace CreateBlog
             var result = folder.GetFiles().ToList().FirstOrDefault(file => file.Name == imgFileName)?.FullName;
             if (null == result)
             {
-                var dir = folder.GetDirectories()!.ToList().FirstOrDefault(dir =>
+                folder.GetDirectories()!.ToList().FirstOrDefault(dir =>
                 {
                     if (null == result)
                     {
@@ -84,6 +91,11 @@ namespace CreateBlog
         /// <param name="fileName">The full path to the file to save.</param>
         public static void SaveHtmlPage(XmlDocument htmlDoc, string fileName)
         {
+            if (!Directory.Exists(Path.GetDirectoryName(fileName)))
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(fileName)!);
+            }
+
             using var xmlReader = new XmlNodeReader(htmlDoc);
             var xDoc = XDocument.Load(xmlReader);
             xDoc.DocumentType!.InternalSubset = null;
@@ -98,6 +110,11 @@ namespace CreateBlog
         /// <param name="fileName">The full path to the JSON file.</param>
         public static void SaveJsonFile(object data, string fileName)
         {
+            if (!Directory.Exists(Path.GetDirectoryName(fileName)))
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(fileName)!);
+            }
+
             var jsonData = JsonSerializer.Serialize(data);
             using var writer = new StreamWriter(fileName);
             writer.WriteLine(jsonData);

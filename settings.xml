@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <settings>
+  <source>
+    <RootFolder value="D:\TestBlog\src" />
+    <ImageFolder value="images" />
+    <FoldersToCopy value="3">
+      <Item1 value="css" />
+      <Item2 value="script" />
+      <Item3 value="new" />
+    </FoldersToCopy>
+  </source>
   <html>
     <RootFolder value="D:\TestBlog\blog" />
     <IndentChars value="  " />

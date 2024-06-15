@@ -34,14 +34,14 @@ namespace CreateBlog
         /// </remarks>
         public static void CreateBlogContent()
         {
-            var indexFileName = Path.Combine(Settings.RootFolder!, "index.xml");
+            var indexFileName = Path.Combine(Settings.SourceRootFolder!, "index.xml");
             var availablePages = new List<PageInfo>();
 
             var xmlDoc = new XmlDocument();
             xmlDoc.Load(indexFileName);
 
             var htmlDoc = new XmlDocument();
-            htmlDoc.Load("index.html");
+            htmlDoc.Load(Path.Combine(Settings.SourceRootFolder!, "index.html"));
 
             var indexDiv = htmlDoc.SelectSingleNode("//div[@id='content']")!;
             foreach (XmlNode chapter in xmlDoc.SelectNodes("//chapters/chapter")!)
@@ -62,12 +62,12 @@ namespace CreateBlog
 
                 // Create all pages for the found chapter.
                 var index = 1;
-                while (File.Exists(Path.Combine(Settings.RootFolder!, link, $"page{index}.xml")))
+                while (File.Exists(Path.Combine(Settings.SourceRootFolder!, link, $"page{index}.xml")))
                 {
                     availablePages.Add(new PageInfo()
                     {
                         Link = $"{link}/page{index}.html",
-                        Icon = Utilities.FindImage(icon, Path.Combine(Settings.RootFolder!, "new", "index.html")),
+                        Icon = Utilities.FindImage(icon, Path.Combine(Settings.HtmlRootFolder!, "new", "index.html")),
                         Title = title
                     });
                     CreateBlogPage(
@@ -75,18 +75,18 @@ namespace CreateBlog
                         icon,
                         title,
                         index,
-                        File.Exists(Path.Combine(Settings.RootFolder!, link, $"page{index - 1}.xml")),
-                        File.Exists(Path.Combine(Settings.RootFolder!, link, $"page{index + 1}.xml"))
+                        File.Exists(Path.Combine(Settings.SourceRootFolder!, link, $"page{index - 1}.xml")),
+                        File.Exists(Path.Combine(Settings.SourceRootFolder!, link, $"page{index + 1}.xml"))
                     );
                     index++;
                 }
             }
 
             // Save the index.html file of the blog.
-            Utilities.SaveHtmlPage(htmlDoc, Path.ChangeExtension(indexFileName, ".html"));
+            Utilities.SaveHtmlPage(htmlDoc, Path.Combine(Settings.HtmlRootFolder!, "index.html"));
 
             // Save the JSON formatted list of available links.
-            Utilities.SaveJsonFile(availablePages.ToArray(), Path.Combine(Settings.RootFolder!, "script", "availablePages.json"));
+            Utilities.SaveJsonFile(availablePages.ToArray(), Path.Combine(Settings.HtmlRootFolder!, "script", "availablePages.json"));
         }
 
         /// <summary>
@@ -100,10 +100,10 @@ namespace CreateBlog
         /// <param name="next">True if there is a next page.</param>
         private static void CreateBlogPage(string link, string icon, string title, int index, bool prev, bool next)
         {
-            var fileName = Path.Combine(Settings.RootFolder!, link, $"page{index}.xml");
+            var fileName = Path.Combine(Settings.SourceRootFolder!, link, $"page{index}.xml");
 
             var htmlDoc = new XmlDocument();
-            htmlDoc.Load("page.html");
+            htmlDoc.Load(Path.Combine(Settings.SourceRootFolder!, "page.html"));
 
             htmlDoc.DocumentElement!.SelectSingleNode("/html/head/title")!.InnerText = $"{title} {index}";
 
@@ -116,7 +116,7 @@ namespace CreateBlog
             AddNavigationSection(htmlDoc, index, prev, next, fileName);
 
             ConvertBlogContent(htmlDoc, fileName);
-            Utilities.SaveHtmlPage(htmlDoc, Path.ChangeExtension(fileName, ".html"));
+            Utilities.SaveHtmlPage(htmlDoc, Path.Combine(Settings.HtmlRootFolder!, link, $"page{index}.html"));
         }
 
         /// <summary>
@@ -134,7 +134,9 @@ namespace CreateBlog
 
             if (!prev && !next)
             {
-                title.AppendChild(htmlDoc.CreateNodeWithAttributes("a", ["class"], ["float-right"]));
+                var newLink = htmlDoc.CreateNodeWithAttributes("a", ["class", "href"], ["float-right", "../index.html"]);
+                newLink.AppendChild(htmlDoc.CreateNodeWithAttributes("img", ["class", "src"], ["icon", Utilities.FindImage("minibus.svg", fileName)]));
+                title.AppendChild(newLink);
             }
             else
             {
@@ -201,10 +203,12 @@ namespace CreateBlog
                     var p = htmlDoc.CreateNodeWithAttributes("p", ["class"], ["body"]);
                     div.AppendChild(p);
 
+                    p.InnerXml = xmlNode.InnerXml;
+
                     if ((images.Count == 1) && (null != images[0].Attributes!.GetNamedItem("location")))
                     {
                         var span = htmlDoc.CreateNodeWithAttributes("span", ["class"], [$"image-{images[0].Attributes!["location"]!.Value}"]);
-                        p.AppendChild(span);
+                        p.InsertAfter(span, null);
 
                         var img = htmlDoc.CreateNodeWithAttributes(
                             "img",
@@ -214,22 +218,22 @@ namespace CreateBlog
                     }
                     else
                     {
-                        var flexDiv = htmlDoc.CreateNodeWithAttributes("div", ["class"], ["flex"]);
-                        div.InsertBefore(flexDiv, p);
-
-                        images.ToList().ForEach(image =>
+                        if (images.Count > 0)
                         {
-                            var imgDiv = htmlDoc.CreateNodeWithAttributes("div", [], []);
-                            flexDiv.AppendChild(imgDiv);
-                            imgDiv.AppendChild(htmlDoc.CreateNodeWithAttributes(
-                                "img",
-                                ["class", "src", "alt"],
-                                ["zoom scale", Utilities.FindImage(image.InnerText, fileName), image.Attributes?["alt"]?.Value]));
-                        });
-                    }
+                            var flexDiv = htmlDoc.CreateNodeWithAttributes("div", ["class"], ["flex"]);
+                            div.InsertBefore(flexDiv, p);
 
-                    var text = htmlDoc.CreateTextNode(Utilities.SetCorrectIndentForText(xmlNode.InnerText, p));
-                    p.AppendChild(text);
+                            images.ForEach(image =>
+                            {
+                                var imgDiv = htmlDoc.CreateNodeWithAttributes("div", [], []);
+                                flexDiv.AppendChild(imgDiv);
+                                imgDiv.AppendChild(htmlDoc.CreateNodeWithAttributes(
+                                    "img",
+                                    ["class", "src", "alt"],
+                                    ["zoom scale", Utilities.FindImage(image.InnerText, fileName), image.Attributes?["alt"]?.Value]));
+                            });
+                        }
+                    }
 
                     images.Clear();
                 }

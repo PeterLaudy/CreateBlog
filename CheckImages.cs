@@ -13,17 +13,27 @@ namespace CreateBlog
         /// </summary>
         public static void CheckAllImages()
         {
-            var images = new DirectoryInfo(Path.Combine(Settings.RootFolder!, "images"));
-            CheckAllImages(images);
+            var sourceImages = new DirectoryInfo(Path.Combine(Settings.SourceRootFolder!, "images"));
+            var htmlImages = new DirectoryInfo(Path.Combine(Settings.HtmlRootFolder!, "images"));
+            CheckAllImages(sourceImages, htmlImages);
         }
 
         /// <summary>
-        /// Check all image files recursively.
+        /// Check all image files recursively and copy the folder structure.
         /// </summary>
-        private static void CheckAllImages(DirectoryInfo dir)
+        private static void CheckAllImages(DirectoryInfo source, DirectoryInfo html)
         {
-            dir.GetDirectories().ToList().ForEach(subDir => CheckAllImages(subDir));
-            dir.GetFiles().ToList().ForEach(image => CheckImageIsLowerCase(image));
+            // Create the destination folder if it does not exist. 
+            if (!html.Exists)
+            {
+                html.Create();
+            }
+
+            source.GetDirectories().ToList().ForEach(subDir =>
+            {
+                CheckAllImages(subDir, new DirectoryInfo(Path.Combine(html.FullName, subDir.Name)));
+            });
+            source.GetFiles().ToList().ForEach(image => CheckImageIsLowerCase(image));
         }
 
         /// <summary>
