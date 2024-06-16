@@ -26,6 +26,7 @@ namespace CreateBlog
             {
                 file.CopyTo(Path.Combine(dstDir.FullName, file.Name));
             });
+
             srcDir.GetDirectories().ToList().ForEach(srcSubDir =>
             {
                 var dstSubDir = new DirectoryInfo(Path.Combine(dstDir.FullName, srcSubDir.Name));

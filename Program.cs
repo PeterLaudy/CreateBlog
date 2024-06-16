@@ -1,4 +1,7 @@
-﻿namespace CreateBlog
+﻿using System;
+using System.IO;
+
+namespace CreateBlog
 {
     /// <summary>
     /// Main entry class of the application.
@@ -11,10 +14,27 @@
         /// <param name="args">Command line arguments (currently not used).</param>
         public static void Main(string[] args)
         {
+            // Read the settings.
             Settings.InitSettings();
+
+            // Delete the destination folder.
+            ClearDestinationFolder();
+
+            // Copy all static folder (like css, scipts etc.).
             FoldersToCopy.CopyAllStaticFolders();
+
+            // Check the filenames for all images. Also copy the folder structure.
             CheckImages.CheckAllImages();
+
+            // Create the blog-content. This also includes copying the images and icons to the destination folder.
             BlogContent.CreateBlogContent();
+        }
+
+        private static void ClearDestinationFolder()
+        {
+            var root = new DirectoryInfo(Settings.HtmlRootFolder!);
+            root.Delete(true);
+            root.Create();
         }
     }
 }
