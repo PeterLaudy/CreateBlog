@@ -87,6 +87,7 @@ namespace CreateBlog
             }
 
             // Save the index.html file of the blog.
+            FoldersToCopy.RenameLinksInHtmlFile(htmlDoc);
             Utilities.SaveHtmlPage(htmlDoc, Path.Combine(Settings.HtmlRootFolder!, "index.html"));
 
             // Save the JSON formatted list of available links.
@@ -169,6 +170,7 @@ namespace CreateBlog
             AddNavigationSection(htmlDoc, index, prev, next, fileName);
 
             ConvertBlogContent(htmlDoc, fileName);
+            FoldersToCopy.RenameLinksInHtmlFile(htmlDoc);
             Utilities.SaveHtmlPage(htmlDoc, Path.Combine(Settings.HtmlRootFolder!, link, $"page{index}.html"));
         }
 
