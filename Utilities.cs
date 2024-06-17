@@ -26,7 +26,12 @@ namespace CreateBlog
             if (null != imgFullName)
             {
                 var img = Path.Combine(Settings.HtmlRootFolder!, imgFullName!.Substring(Settings.SourceRootFolder!.Length));
-                File.Copy(imgFullName!, img!, true);
+                if (!File.Exists(img!))
+                {
+                    LogMessage($"Copying image {imgFileName}");
+                    File.Copy(imgFullName!, img!, true);
+                }
+
                 return Path.GetRelativePath(Path.GetDirectoryName(htmlFileName)!, img!).Replace('\\', '/');
             }
 
@@ -91,8 +96,11 @@ namespace CreateBlog
         /// <param name="fileName">The full path to the file to save.</param>
         public static void SaveHtmlPage(XmlDocument htmlDoc, string fileName)
         {
+            LogMessage($"Saving HTML file {fileName}");
+
             if (!Directory.Exists(Path.GetDirectoryName(fileName)))
             {
+                LogMessage($"Creating directory {Path.GetDirectoryName(fileName)!}");
                 Directory.CreateDirectory(Path.GetDirectoryName(fileName)!);
             }
 
@@ -101,6 +109,8 @@ namespace CreateBlog
             xDoc.DocumentType!.InternalSubset = null;
             using var xmlWriter = XmlWriter.Create(fileName, new XmlWriterSettings() { OmitXmlDeclaration = true, Indent = true, IndentChars = Settings.IndentChars! });
             xDoc.Save(xmlWriter);
+
+            LogMessage(string.Empty);
         }
 
         /// <summary>
@@ -110,8 +120,11 @@ namespace CreateBlog
         /// <param name="fileName">The full path to the JSON file.</param>
         public static void SaveJsonFile(object data, string fileName)
         {
+            LogMessage($"Saving JSON file {fileName}");
+
             if (!Directory.Exists(Path.GetDirectoryName(fileName)))
             {
+                LogMessage($"Creating directory {Path.GetDirectoryName(fileName)!}");
                 Directory.CreateDirectory(Path.GetDirectoryName(fileName)!);
             }
 
@@ -119,6 +132,16 @@ namespace CreateBlog
             using var writer = new StreamWriter(fileName);
             writer.WriteLine(jsonData);
             writer.Close();
+
+            LogMessage(string.Empty);
+        }
+
+        public static void LogMessage(string msg)
+        {
+            if (Settings.Verbose)
+            {
+                Console.Out.WriteLine(msg);
+            }
         }
     }
 }

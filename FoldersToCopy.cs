@@ -7,6 +7,7 @@ namespace CreateBlog
     {
         internal static void CopyAllStaticFolders()
         {
+            Utilities.LogMessage("Copying all static folders");
             Settings.FoldersToCopy!.ForEach(folder =>
             {
                 var srcDir = new DirectoryInfo(Path.Combine(Settings.SourceRootFolder!, folder));
@@ -17,15 +18,20 @@ namespace CreateBlog
 
         private static void DeepCopyFolder(DirectoryInfo srcDir, DirectoryInfo dstDir)
         {
+            Utilities.LogMessage($"Copying {srcDir.FullName} => {dstDir.FullName}");
             if (!dstDir.Exists)
             {
+                Utilities.LogMessage($"Creating directory {dstDir.FullName}");
                 dstDir.Create();
             }
 
             srcDir.GetFiles().ToList().ForEach(file =>
             {
+                Utilities.LogMessage($"Copying {file.Name}");
                 file.CopyTo(Path.Combine(dstDir.FullName, file.Name));
             });
+
+            Utilities.LogMessage(string.Empty);
 
             srcDir.GetDirectories().ToList().ForEach(srcSubDir =>
             {

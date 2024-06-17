@@ -22,8 +22,13 @@ namespace CreateBlog
         /// </remarks>
         public static void InitSettings()
         {
+            var settingsFileName = "settings.xml";
             var settingsDoc = new XmlDocument();
-            settingsDoc.Load("settings.xml");
+            settingsDoc.Load(settingsFileName);
+
+            Verbose = true;
+
+            Utilities.LogMessage($"Reading settings from {settingsFileName}");
 
             SourceRootFolder = GetSetting<string>(settingsDoc, "//source/RootFolder");
             if (!SourceRootFolder!.EndsWith("\\"))
@@ -40,6 +45,9 @@ namespace CreateBlog
                 HtmlRootFolder += "\\";
 
             IndentChars = GetSetting<string>(settingsDoc, "//html/IndentChars");
+
+            Utilities.LogMessage($"Done reading settings");
+            Utilities.LogMessage(string.Empty);
         }
 
         /// <summary>
@@ -139,5 +147,10 @@ namespace CreateBlog
         /// The indentation used for the generated html files.
         /// </summary>
         public static string? IndentChars { get; private set; }
+
+        /// <summary>
+        /// When true, the application will log its activities to the console.
+        /// </summary>
+        public static bool Verbose { get; private set; }
     }
 }

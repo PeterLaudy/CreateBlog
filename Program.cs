@@ -33,8 +33,14 @@ namespace CreateBlog
         private static void ClearDestinationFolder()
         {
             var root = new DirectoryInfo(Settings.HtmlRootFolder!);
+
+            Utilities.LogMessage($"Removing {Settings.HtmlRootFolder!}");
             root.Delete(true);
+
+            Utilities.LogMessage($"Recreating {Settings.HtmlRootFolder!}");
             root.Create();
+
+            Utilities.LogMessage(string.Empty);
         }
     }
 }

@@ -36,6 +36,8 @@ namespace CreateBlog
         /// </remarks>
         public static void CreateBlogContent()
         {
+            Utilities.LogMessage($"Crteating blog content for {Settings.SourceRootFolder!}");
+
             var indexFileName = Path.Combine(Settings.SourceRootFolder!, "index.xml");
 
             var xmlDoc = new XmlDocument();
@@ -55,6 +57,8 @@ namespace CreateBlog
                         break;
                     case "empty-line":
                         {
+                            Utilities.LogMessage("Adding empty line to home page");
+                            Utilities.LogMessage(string.Empty);
                             var p = htmlDoc.CreateNodeWithAttributes("p", [], []);
                             p.InnerXml = "&#160;";
                             indexDiv.AppendChild(p);
@@ -65,6 +69,8 @@ namespace CreateBlog
                             var link = node.Attributes!["href"]!.Value;
                             var icon = node.Attributes!["icon"]!.Value;
 
+                            Utilities.LogMessage($"Adding fixed link \"{node.InnerText}\" to home page");
+
                             var p = htmlDoc.CreateNodeWithAttributes("p", [], []);
                             var a = htmlDoc.CreateNodeWithAttributes("a", ["class", "href"], ["no_decoration", link]);
                             var img = htmlDoc.CreateNodeWithAttributes("img", ["class", "src"], ["icon", Utilities.FindImage(icon, indexFileName)]);
@@ -73,6 +79,8 @@ namespace CreateBlog
                             p.AppendChild(a);
                             a.AppendChild(img);
                             a.AppendChild(htmlDoc.CreateTextNode(node.InnerText));
+
+                            Utilities.LogMessage(string.Empty);
                         }
                         break;
                 }
@@ -93,6 +101,8 @@ namespace CreateBlog
             var icon = chapter.Attributes!["icon"]!.Value;
             var title = chapter.InnerText;
 
+            Utilities.LogMessage($"Converting blog chapter {title}");
+
             // Create the link in the main blog page to the first page of the chapter.
             var p = htmlDoc.CreateNodeWithAttributes("p", [], []);
             var a = htmlDoc.CreateNodeWithAttributes("a", ["class", "href"], ["no_decoration", $"./{link}/page1.html"]);
@@ -107,6 +117,8 @@ namespace CreateBlog
             var index = 1;
             while (File.Exists(Path.Combine(Settings.SourceRootFolder!, link, $"page{index}.xml")))
             {
+                Utilities.LogMessage($"Converting page {index}");
+
                 AvailablePages.Add(new PageInfo()
                 {
                     Link = $"{link}/page{index}.html",
