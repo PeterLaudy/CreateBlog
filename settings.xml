@@ -13,4 +13,7 @@
     <RootFolder value="D:\TestBlog\blog" />
     <IndentChars value="  " />
   </html>
+  <log>
+    <Verbose value="true" />
+  </log>
 </settings>

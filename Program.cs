@@ -1,5 +1,4 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 
 namespace CreateBlog
 {
@@ -30,6 +29,9 @@ namespace CreateBlog
             BlogContent.CreateBlogContent();
         }
 
+        /// <summary>
+        /// Delete the destination folder and then recreate it, so it is empty. 
+        /// </summary>
         private static void ClearDestinationFolder()
         {
             var root = new DirectoryInfo(Settings.HtmlRootFolder!);

@@ -23,6 +23,8 @@ namespace CreateBlog
         /// <summary>
         /// Check all image files recursively and copy the folder structure.
         /// </summary>
+        /// <param name="source">The source folder to check recursively.</param>
+        /// <param name="html">The destination folder to which the imnages will be copied.</param>
         private static void CheckAllImages(DirectoryInfo source, DirectoryInfo html)
         {
             Utilities.LogMessage($"Checking the images in {source.FullName}");
@@ -49,6 +51,7 @@ namespace CreateBlog
         /// <remarks>
         /// Linux servers treat file names case sensitive.
         /// </remarks>
+        /// <param name="image">File for which we check if its name is lowercase.</param>
         private static void CheckImageIsLowerCase(FileInfo image)
         {
             if (image.Name != image.Name.ToLower())

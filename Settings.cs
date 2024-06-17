@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Reflection.Metadata.Ecma335;
 using System.Xml;
 
 namespace CreateBlog
@@ -26,7 +24,7 @@ namespace CreateBlog
             var settingsDoc = new XmlDocument();
             settingsDoc.Load(settingsFileName);
 
-            Verbose = true;
+            Verbose = GetSetting<string>(settingsDoc, "//log/Verbose")!.ToLower() == "true";
 
             Utilities.LogMessage($"Reading settings from {settingsFileName}");
 

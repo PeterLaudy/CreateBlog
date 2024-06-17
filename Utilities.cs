@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -136,6 +135,10 @@ namespace CreateBlog
             LogMessage(string.Empty);
         }
 
+        /// <summary>
+        /// Log a message to the console, depending on the log settings.
+        /// </summary>
+        /// <param name="msg">The message to log to the console.</param>
         public static void LogMessage(string msg)
         {
             if (Settings.Verbose)

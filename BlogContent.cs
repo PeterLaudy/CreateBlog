@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Xml;
 
 namespace CreateBlog
@@ -87,13 +86,19 @@ namespace CreateBlog
             }
 
             // Save the index.html file of the blog.
-            FoldersToCopy.RenameLinksInHtmlFile(htmlDoc);
+            FoldersToCopy.RandomizeLinksInHtmlFile(htmlDoc);
             Utilities.SaveHtmlPage(htmlDoc, Path.Combine(Settings.HtmlRootFolder!, "index.html"));
 
             // Save the JSON formatted list of available links.
             Utilities.SaveJsonFile(AvailablePages.ToArray(), Path.Combine(Settings.HtmlRootFolder!, "script", "availablePages.json"));
         }
 
+        /// <summary>
+        /// Create the link to the given chapter and create all pages for that chapter.
+        /// </summary>
+        /// <param name="chapter">The chapter to create the link and all pages for.</param>
+        /// <param name="indexFileName">The filename in which the links are generated.</param>
+        /// <param name="htmlDoc">The XML document in which the links are generated.</param>
         private static void CreateChapter(XmlNode chapter, string indexFileName, XmlDocument htmlDoc)
         {
             var indexDiv = htmlDoc.SelectSingleNode("//div[@id='content']")!;
@@ -170,7 +175,7 @@ namespace CreateBlog
             AddNavigationSection(htmlDoc, index, prev, next, fileName);
 
             ConvertBlogContent(htmlDoc, fileName);
-            FoldersToCopy.RenameLinksInHtmlFile(htmlDoc);
+            FoldersToCopy.RandomizeLinksInHtmlFile(htmlDoc);
             Utilities.SaveHtmlPage(htmlDoc, Path.Combine(Settings.HtmlRootFolder!, link, $"page{index}.html"));
         }
 
