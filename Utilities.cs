@@ -21,10 +21,10 @@ namespace CreateBlog
         {
             // Since we convert all filenames to lowercase, we also must make that same change here. 
             imgFileName = imgFileName.ToLower();
-            var imgFullName = FindImage(imgFileName, new DirectoryInfo(Settings.SourceRootFolder!));
+            var imgFullName = FindImage(imgFileName, new DirectoryInfo(Settings.Single.SourceRootFolder!));
             if (null != imgFullName)
             {
-                var img = Path.Combine(Settings.HtmlRootFolder!, imgFullName!.Substring(Settings.SourceRootFolder!.Length));
+                var img = Path.Combine(Settings.Single.HtmlRootFolder!, imgFullName!.Substring(Settings.Single.SourceRootFolder!.Length));
                 if (!File.Exists(img!))
                 {
                     LogMessage($"Copying image {imgFileName}");
@@ -75,7 +75,7 @@ namespace CreateBlog
             while (parent.ParentNode!.Name.ToLower() != "html")
             {
                 parent = parent.ParentNode;
-                indent += Settings.IndentChars;
+                indent += Settings.Single.IndentChars;
             }
 
             var lines = s.Split(Environment.NewLine).ToList();
@@ -106,7 +106,9 @@ namespace CreateBlog
             using var xmlReader = new XmlNodeReader(htmlDoc);
             var xDoc = XDocument.Load(xmlReader);
             xDoc.DocumentType!.InternalSubset = null;
-            using var xmlWriter = XmlWriter.Create(fileName, new XmlWriterSettings() { OmitXmlDeclaration = true, Indent = true, IndentChars = Settings.IndentChars! });
+            using var xmlWriter = XmlWriter.Create(fileName, new XmlWriterSettings() {
+                OmitXmlDeclaration = true, Indent = true, IndentChars = Settings.Single.IndentChars!
+            });
             xDoc.Save(xmlWriter);
 
             LogMessage(string.Empty);
@@ -141,7 +143,7 @@ namespace CreateBlog
         /// <param name="msg">The message to log to the console.</param>
         public static void LogMessage(string msg)
         {
-            if (Settings.Verbose)
+            if (Settings.Single.Verbose)
             {
                 Console.Out.WriteLine(msg);
             }

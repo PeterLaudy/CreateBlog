@@ -13,8 +13,10 @@ namespace CreateBlog
     /// To prevent caching issues, certain files (like css and js) will have their name randomized.
     /// Any references to these files from html files are updated accordingly.
     /// </remarks>
-    internal static class FoldersToCopy
+    internal class FoldersToCopy
     {
+        private delegate void FileCopier(FileInfo file, DirectoryInfo dstDir);
+
         /// <summary>
         /// Dictionary containing methods to copy specific file types.
         /// </summary>
@@ -23,10 +25,7 @@ namespace CreateBlog
         /// has been randomized, so there is no cashing issue after an update.
         /// For now we only handle html and javascript files.
         /// </remarks>
-        private static Dictionary<string, Action<FileInfo, DirectoryInfo>> FileCopiers { get; } = new()
-        {
-            { ".html", FoldersToCopy.CopyHtml }, { ".js", FoldersToCopy.CopyJs }
-        };
+        private Dictionary<string, FileCopier> FileCopiers { get; }
 
         /// <summary>
         /// The filetypes in which the references to files which name have been randomized
@@ -35,7 +34,7 @@ namespace CreateBlog
         /// <remarks>
         /// For now we only handle html and javascript files.
         /// </remarks>
-        private static List<string> ExtensionToCheckForRandomizedLinks { get; } = new() { ".html", ".js" };
+        private List<string> ExtensionToCheckForRandomizedLinks { get; } = new() { ".html", ".js" };
 
         /// <summary>
         /// The filetypes for which the name needs to be randomized to avoid cashing issues. 
@@ -43,32 +42,43 @@ namespace CreateBlog
         /// <remarks>
         /// For now we only handle css and javascript files.
         /// </remarks>
-        private static List<string> ExtensionToRandomize { get; } = new() { ".css", ".js" };
+        private List<string> ExtensionToRandomize { get; } = new() { ".css", ".js" };
 
         /// <summary>
         /// The files for which the name is randomized to avoid cashing issues. 
         /// </summary>
-        private static Dictionary<string, string> RandomizedFiles { get; set; } = new();
+        private Dictionary<string, string> RandomizedFiles { get; } = new();
+
+        public FoldersToCopy()
+        {
+            this.FileCopiers = new() { { ".html", this.CopyHtml }, { ".js", this.CopyJs } };
+        }
 
         /// <summary>
         /// Copy all folders with static files as indicated in the settings.xml file.
         /// </summary>
-        internal static void CopyAllStaticFolders()
+        public void CopyAllStaticFolders(List<IContentCreator> contentCreators)
         {
             RandomizedFiles.Clear();
-
-            Utilities.LogMessage("Getting static files to randomized");
-            Settings.FoldersToCopy!.ForEach(folder =>
+            contentCreators.ForEach(cc =>
             {
-                var srcDir = new DirectoryInfo(Path.Combine(Settings.SourceRootFolder!, folder));
+                cc.GetFilesToRename.Keys.ToList().ForEach(key => {
+                    RandomizedFiles.Add(key, cc.GetFilesToRename[key]);
+                });
+            });
+
+            Utilities.LogMessage("Getting static files to be randomized");
+            Settings.Single.FoldersToCopy!.ForEach(folder =>
+            {
+                var srcDir = new DirectoryInfo(Path.Combine(Settings.Single.SourceRootFolder!, folder));
                 FindAllFilesToRandomize(srcDir);
             });
 
             Utilities.LogMessage("Copying all static folders");
-            Settings.FoldersToCopy!.ForEach(folder =>
+            Settings.Single.FoldersToCopy!.ForEach(folder =>
             {
-                var srcDir = new DirectoryInfo(Path.Combine(Settings.SourceRootFolder!, folder));
-                var dstDir = new DirectoryInfo(Path.Combine(Settings.HtmlRootFolder!, folder.ToLower()));
+                var srcDir = new DirectoryInfo(Path.Combine(Settings.Single.SourceRootFolder!, folder));
+                var dstDir = new DirectoryInfo(Path.Combine(Settings.Single.HtmlRootFolder!, folder.ToLower()));
                 DeepCopyFolder(srcDir, dstDir);
             });
         }
@@ -78,7 +88,7 @@ namespace CreateBlog
         /// to avoid any caching issues.
         /// <summary>
         /// <param name="folder"/>The folder to recursively check for filenames to randomize.</param>
-        private static void FindAllFilesToRandomize(DirectoryInfo folder)
+        private void FindAllFilesToRandomize(DirectoryInfo folder)
         {
             folder.GetFiles().ToList().ForEach(file =>
             {
@@ -101,7 +111,7 @@ namespace CreateBlog
         /// </summary>
         /// <param name="srcDir">The folder for which all files recursively will be copied.</param>
         /// <param name="dstDir">The folder to which all files recursively will be copied.</param>
-        private static void DeepCopyFolder(DirectoryInfo srcDir, DirectoryInfo dstDir)
+        private void DeepCopyFolder(DirectoryInfo srcDir, DirectoryInfo dstDir)
         {
             Utilities.LogMessage($"Copying {srcDir.FullName} => {dstDir.FullName}");
             if (!dstDir.Exists)
@@ -130,7 +140,7 @@ namespace CreateBlog
         /// </summary>
         /// <param name="file">The file to copy</param>
         /// <param name="dstDir">The destination directory to which the file must be copied.</param>
-        private static void CopyFile(FileInfo file, DirectoryInfo dstDir)
+        private void CopyFile(FileInfo file, DirectoryInfo dstDir)
         {
             Utilities.LogMessage($"Copying {file.Name.ToLower()}");
             if (ExtensionToCheckForRandomizedLinks.Contains(file.Extension.ToLower()))
@@ -152,7 +162,7 @@ namespace CreateBlog
         /// </remarks>
         /// <param name="file">The file to copy</param>
         /// <param name="dstDir">The destination directory to which the file must be copied.</param>
-        private static void CopyHtml(FileInfo file, DirectoryInfo dstDir)
+        private void CopyHtml(FileInfo file, DirectoryInfo dstDir)
         {
             var xmlDoc = new XmlDocument();
             xmlDoc.Load(file.FullName);
@@ -166,7 +176,7 @@ namespace CreateBlog
         /// Change the references to any file who's name has been randomized in a HTML file. 
         /// </summary>
         /// <param name="xmlDoc">The content of the html file.</param>,
-        public static void RandomizeLinksInHtmlFile(XmlDocument xmlDoc)
+        public void RandomizeLinksInHtmlFile(XmlDocument xmlDoc)
         {
             Utilities.LogMessage("Updating randomized links in Html");
 
@@ -192,7 +202,7 @@ namespace CreateBlog
         /// </remarks>
         /// <param name="file">The file to copy</param>
         /// <param name="dstDir">The destination directory to which the file must be copied.</param>
-        private static void CopyJs(FileInfo file, DirectoryInfo dstDir)
+        private void CopyJs(FileInfo file, DirectoryInfo dstDir)
         {
             var js = File.ReadAllText(file.FullName);
 
@@ -205,7 +215,7 @@ namespace CreateBlog
         /// Change the references to any file who's name has been randomized in a javascript file. 
         /// </summary>
         /// <param name="js">The content of the javascript file.</param>
-        public static void RandomizeLinksInJsFile(ref string js)
+        public void RandomizeLinksInJsFile(ref string js)
         {
             Utilities.LogMessage("Updating randomized links in JavaScript");
 
@@ -220,7 +230,7 @@ namespace CreateBlog
         /// If it has not been randomized, it is only converted to lower case.
         /// </summary>
         /// <param name="fileName">The original filename to randomize if required.</param>
-        private static string GetRandomizedFileName(string fileName)
+        private string GetRandomizedFileName(string fileName)
         {
             if (RandomizedFiles.ContainsKey(fileName.ToLower()))
             {

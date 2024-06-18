@@ -13,20 +13,23 @@ namespace CreateBlog
         /// <param name="args">Command line arguments (currently not used).</param>
         public static void Main(string[] args)
         {
-            // Read the settings.
-            Settings.InitSettings();
-
             // Delete the destination folder.
             ClearDestinationFolder();
 
+            // Construct the class which creates the content of the blog.
+            var blogContent = new BlogContent();
+
+            // Construct the class which copies the static files.
+            var foldersToCopy = new FoldersToCopy();
+            
             // Copy all static folder (like css, scipts etc.).
-            FoldersToCopy.CopyAllStaticFolders();
+            foldersToCopy.CopyAllStaticFolders(new() { blogContent });
 
             // Check the filenames for all images. Also copy the folder structure.
-            CheckImages.CheckAllImages();
+            new CheckImages().CheckAllImages();
 
             // Create the blog-content. This also includes copying the images and icons to the destination folder.
-            BlogContent.CreateBlogContent();
+            blogContent.CreateBlogContent(foldersToCopy);
         }
 
         /// <summary>
@@ -34,12 +37,12 @@ namespace CreateBlog
         /// </summary>
         private static void ClearDestinationFolder()
         {
-            var root = new DirectoryInfo(Settings.HtmlRootFolder!);
+            var root = new DirectoryInfo(Settings.Single.HtmlRootFolder!);
 
-            Utilities.LogMessage($"Removing {Settings.HtmlRootFolder!}");
+            Utilities.LogMessage($"Removing {root.FullName}");
             root.Delete(true);
 
-            Utilities.LogMessage($"Recreating {Settings.HtmlRootFolder!}");
+            Utilities.LogMessage($"Recreating {root.FullName}");
             root.Create();
 
             Utilities.LogMessage(string.Empty);

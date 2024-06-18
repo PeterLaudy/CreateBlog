@@ -10,15 +10,38 @@ namespace CreateBlog
     /// <remarks>
     /// The settings are read from the settings.xml file.
     /// </remarks>
-    internal static class Settings
+    internal class Settings
     {
+        private static Settings? SingleInstance;
+
+        public static Settings Single
+        {
+            get
+            {
+                if (null == SingleInstance)
+                {
+                    SingleInstance = new();
+                    SingleInstance.InitSettings();
+                }
+
+                return SingleInstance;
+            }
+        }
+
+        /// <summary>
+        /// Prevents the constructor from being called outside this class, so we can implement the singleton pattern. 
+        /// </summary>
+        private Settings()
+        {
+        }
+
         /// <summary>
         /// Initializes the static members for this class.
         /// </summary>
         /// <remarks>
         /// The settings are read from the settings.xml file.
         /// </remarks>
-        public static void InitSettings()
+        private void InitSettings()
         {
             var settingsFileName = "settings.xml";
             var settingsDoc = new XmlDocument();
@@ -53,7 +76,7 @@ namespace CreateBlog
         /// </summary>
         /// <param name="settingsDoc">The xml document containing the settings.</param>
         /// <param name="xPath">The XPATH expression pointing to the required setting.</param>
-        private static T? GetSetting<T>(XmlDocument settingsDoc, string xPath) where T : class
+        private T? GetSetting<T>(XmlDocument settingsDoc, string xPath) where T : class
         {
             var value = settingsDoc.SelectSingleNode(xPath)?.Attributes!["value"]?.Value;
             if (!string.IsNullOrEmpty(value))
@@ -78,7 +101,7 @@ namespace CreateBlog
         /// </summary>
         /// <param name="settingsDoc">The xml document containing the settings.</param>
         /// <param name="xPath">The XPATH expression pointing to the required setting.</param>
-        private static List<T> GetListOfSetting<T>(XmlDocument settingsDoc, string xPath) where T : class
+        private List<T> GetListOfSetting<T>(XmlDocument settingsDoc, string xPath) where T : class
         {
             var result = new List<T>();
             var node = settingsDoc.SelectSingleNode(xPath);
@@ -124,31 +147,31 @@ namespace CreateBlog
         /// <summary>
         /// The rootfolder on disk where the blog is read from.
         /// </summary>
-       public static string? SourceRootFolder { get; private set; }
+       public string? SourceRootFolder { get; private set; }
 
         /// <summary>
         /// The name of the subfolder containing the images.
         /// </summary>
-        public static string? ImageFolder { get; private set; }
+        public string? ImageFolder { get; private set; }
 
         /// <summary>
         /// The folders which content is copied as is.
         /// </summary>
-        public static List<string>? FoldersToCopy { get; private set; }
+        public List<string>? FoldersToCopy { get; private set; }
 
         /// <summary>
         /// The rootfolder on disk where the blog is written to.
         /// </summary>
-        public static string? HtmlRootFolder { get; private set; }
+        public string? HtmlRootFolder { get; private set; }
 
         /// <summary>
         /// The indentation used for the generated html files.
         /// </summary>
-        public static string? IndentChars { get; private set; }
+        public string? IndentChars { get; private set; }
 
         /// <summary>
         /// When true, the application will log its activities to the console.
         /// </summary>
-        public static bool Verbose { get; private set; }
+        public bool Verbose { get; private set; }
     }
 }

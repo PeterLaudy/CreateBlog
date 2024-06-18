@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Xml;
@@ -7,8 +8,10 @@ namespace CreateBlog
     /// <summary>
     /// Class used to convert the blog content in xml format to html files.
     /// </summary>
-    internal class BlogContent
+    internal class BlogContent : IContentCreator
     {
+        private FoldersToCopy? foldersToCopy;
+
         /// <summary>
         /// Class used to create the availablePages.json file.
         /// </summary>
@@ -22,8 +25,18 @@ namespace CreateBlog
             public string? Title { get; set; }
         }
 
-        private static List<PageInfo> AvailablePages { get; } = new(); 
- 
+        private List<PageInfo> AvailablePages { get; } = new();
+
+        private string AvailablePagesFileName { get; } = $"availablePages-{Guid.NewGuid()}.json";
+
+        public Dictionary<string, string> GetFilesToRename
+        {
+            get
+            {
+                return new() { { "availablePages.json", AvailablePagesFileName } };
+            }
+        }
+
         /// <summary>
         /// Find all page{n}.xml files and create html files from them.
         /// The files are searched for in the chapters, which are defined in the
@@ -33,17 +46,19 @@ namespace CreateBlog
         /// Note that the code will search for consecutive file numbers, starting at 1.
         /// If a file cannot be found, it will stop and continue with the next chapter.
         /// </remarks>
-        public static void CreateBlogContent()
+        public void CreateBlogContent(FoldersToCopy foldersToCopy)
         {
-            Utilities.LogMessage($"Crteating blog content for {Settings.SourceRootFolder!}");
+            this.foldersToCopy = foldersToCopy;
 
-            var indexFileName = Path.Combine(Settings.SourceRootFolder!, "index.xml");
+            Utilities.LogMessage($"Crteating blog content for {Settings.Single.SourceRootFolder!}");
+
+            var indexFileName = Path.Combine(Settings.Single.SourceRootFolder!, "index.xml");
 
             var xmlDoc = new XmlDocument();
             xmlDoc.Load(indexFileName);
 
             var htmlDoc = new XmlDocument();
-            htmlDoc.Load(Path.Combine(Settings.SourceRootFolder!, "index.html"));
+            htmlDoc.Load(Path.Combine(Settings.Single.SourceRootFolder!, "index.html"));
 
             var indexDiv = htmlDoc.SelectSingleNode("//div[@id='content']")!;
 
@@ -86,11 +101,11 @@ namespace CreateBlog
             }
 
             // Save the index.html file of the blog.
-            FoldersToCopy.RandomizeLinksInHtmlFile(htmlDoc);
-            Utilities.SaveHtmlPage(htmlDoc, Path.Combine(Settings.HtmlRootFolder!, "index.html"));
+            foldersToCopy!.RandomizeLinksInHtmlFile(htmlDoc);
+            Utilities.SaveHtmlPage(htmlDoc, Path.Combine(Settings.Single.HtmlRootFolder!, "index.html"));
 
             // Save the JSON formatted list of available links.
-            Utilities.SaveJsonFile(AvailablePages.ToArray(), Path.Combine(Settings.HtmlRootFolder!, "script", "availablePages.json"));
+            Utilities.SaveJsonFile(AvailablePages.ToArray(), Path.Combine(Settings.Single.HtmlRootFolder!, "script", AvailablePagesFileName));
         }
 
         /// <summary>
@@ -99,7 +114,7 @@ namespace CreateBlog
         /// <param name="chapter">The chapter to create the link and all pages for.</param>
         /// <param name="indexFileName">The filename in which the links are generated.</param>
         /// <param name="htmlDoc">The XML document in which the links are generated.</param>
-        private static void CreateChapter(XmlNode chapter, string indexFileName, XmlDocument htmlDoc)
+        private void CreateChapter(XmlNode chapter, string indexFileName, XmlDocument htmlDoc)
         {
             var indexDiv = htmlDoc.SelectSingleNode("//div[@id='content']")!;
 
@@ -121,14 +136,14 @@ namespace CreateBlog
 
             // Create all pages for the found chapter.
             var index = 1;
-            while (File.Exists(Path.Combine(Settings.SourceRootFolder!, link, $"page{index}.xml")))
+            while (File.Exists(Path.Combine(Settings.Single.SourceRootFolder!, link, $"page{index}.xml")))
             {
                 Utilities.LogMessage($"Converting page {index}");
 
                 AvailablePages.Add(new PageInfo()
                 {
                     Link = $"{link}/page{index}.html",
-                    Icon = Utilities.FindImage(icon, Path.Combine(Settings.HtmlRootFolder!, "new", "index.html")),
+                    Icon = Utilities.FindImage(icon, Path.Combine(Settings.Single.HtmlRootFolder!, "new", "index.html")),
                     Title = title
                 });
                 CreateBlogPage(
@@ -136,8 +151,8 @@ namespace CreateBlog
                     icon,
                     title,
                     index,
-                    File.Exists(Path.Combine(Settings.SourceRootFolder!, link, $"page{index - 1}.xml")),
-                    File.Exists(Path.Combine(Settings.SourceRootFolder!, link, $"page{index + 1}.xml"))
+                    File.Exists(Path.Combine(Settings.Single.SourceRootFolder!, link, $"page{index - 1}.xml")),
+                    File.Exists(Path.Combine(Settings.Single.SourceRootFolder!, link, $"page{index + 1}.xml"))
                 );
                 index++;
             }
@@ -152,12 +167,12 @@ namespace CreateBlog
         /// <param name="index">The index number of the page.</param>
         /// <param name="prev">True if there is a previous page.</param>
         /// <param name="next">True if there is a next page.</param>
-        private static void CreateBlogPage(string link, string icon, string title, int index, bool prev, bool next)
+        private void CreateBlogPage(string link, string icon, string title, int index, bool prev, bool next)
         {
-            var fileName = Path.Combine(Settings.SourceRootFolder!, link, $"page{index}.xml");
+            var fileName = Path.Combine(Settings.Single.SourceRootFolder!, link, $"page{index}.xml");
 
             var htmlDoc = new XmlDocument();
-            htmlDoc.Load(Path.Combine(Settings.SourceRootFolder!, "page.html"));
+            htmlDoc.Load(Path.Combine(Settings.Single.SourceRootFolder!, "page.html"));
 
             if (prev || next)
             {
@@ -175,8 +190,8 @@ namespace CreateBlog
             AddNavigationSection(htmlDoc, index, prev, next, fileName);
 
             ConvertBlogContent(htmlDoc, fileName);
-            FoldersToCopy.RandomizeLinksInHtmlFile(htmlDoc);
-            Utilities.SaveHtmlPage(htmlDoc, Path.Combine(Settings.HtmlRootFolder!, link, $"page{index}.html"));
+            foldersToCopy!.RandomizeLinksInHtmlFile(htmlDoc);
+            Utilities.SaveHtmlPage(htmlDoc, Path.Combine(Settings.Single.HtmlRootFolder!, link, $"page{index}.html"));
         }
 
         /// <summary>
@@ -188,7 +203,7 @@ namespace CreateBlog
         /// <param name="prev">True if there is a previous page.</param>
         /// <param name="next">True if there is a next page.</param>
         /// <param name="fileName">The full path to the file, used to create relative links to the icons.</param>
-        private static void AddNavigationSection(XmlDocument htmlDoc, int index, bool prev, bool next, string fileName)
+        private void AddNavigationSection(XmlDocument htmlDoc, int index, bool prev, bool next, string fileName)
         {
             var title = htmlDoc.DocumentElement!.SelectSingleNode("//p[@id='title']")!;
 
@@ -238,7 +253,7 @@ namespace CreateBlog
         /// </summary>
         /// <param name="htmlDoc">The html document to which the blog content should be added.</param>
         /// <param name="fileName">The full path to the file, used to create relative links to the icons.</param>
-        private static void ConvertBlogContent(XmlDocument htmlDoc, string fileName)
+        private void ConvertBlogContent(XmlDocument htmlDoc, string fileName)
         {
             var contentDiv = htmlDoc.DocumentElement!.SelectSingleNode("//div[@id='content']")!;
 

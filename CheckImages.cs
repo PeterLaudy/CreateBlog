@@ -6,17 +6,17 @@ namespace CreateBlog
     /// <summary>
     /// Class to check all image files.
     /// </summary>
-    internal static class CheckImages
+    internal class CheckImages
     {
         /// <summary>
         /// Check all image files.
         /// </summary>
-        public static void CheckAllImages()
+        public void CheckAllImages()
         {
             Utilities.LogMessage("Checking all image filenames and copying folder structure");
 
-            var sourceImages = new DirectoryInfo(Path.Combine(Settings.SourceRootFolder!, "images"));
-            var htmlImages = new DirectoryInfo(Path.Combine(Settings.HtmlRootFolder!, "images"));
+            var sourceImages = new DirectoryInfo(Path.Combine(Settings.Single.SourceRootFolder!, "images"));
+            var htmlImages = new DirectoryInfo(Path.Combine(Settings.Single.HtmlRootFolder!, "images"));
             CheckAllImages(sourceImages, htmlImages);
         }
 
@@ -25,7 +25,7 @@ namespace CreateBlog
         /// </summary>
         /// <param name="source">The source folder to check recursively.</param>
         /// <param name="html">The destination folder to which the imnages will be copied.</param>
-        private static void CheckAllImages(DirectoryInfo source, DirectoryInfo html)
+        private void CheckAllImages(DirectoryInfo source, DirectoryInfo html)
         {
             Utilities.LogMessage($"Checking the images in {source.FullName}");
 
@@ -52,7 +52,7 @@ namespace CreateBlog
         /// Linux servers treat file names case sensitive.
         /// </remarks>
         /// <param name="image">File for which we check if its name is lowercase.</param>
-        private static void CheckImageIsLowerCase(FileInfo image)
+        private void CheckImageIsLowerCase(FileInfo image)
         {
             if (image.Name != image.Name.ToLower())
             {
