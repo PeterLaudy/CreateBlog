@@ -283,8 +283,17 @@ namespace CreateBlog
 
                     if ((images.Count == 1) && (null != images[0].Attributes!.GetNamedItem("location")))
                     {
+                        var scale = images[0].Attributes!["scale"]?.Value;
+                        if (string.IsNullOrEmpty(scale))
+                        {
+                            scale = "25";
+                        }
+
                         // Only 1 small image, surrounded by text.
-                        var span = htmlDoc.CreateNodeWithAttributes("span", ["class"], [$"image-{images[0].Attributes!["location"]!.Value}"]);
+                        var span = htmlDoc.CreateNodeWithAttributes(
+                            "span",
+                            ["class"],
+                            [$"image-{images[0].Attributes!["location"]!.Value} scale{scale}"]);
                         p.InsertAfter(span, null);
 
                         var img = htmlDoc.CreateNodeWithAttributes(
