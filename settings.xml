@@ -3,6 +3,7 @@
   <source>
     <RootFolder value="D:\TestBlog\src" />
     <ImageFolder value="images" />
+    <ImagesToCheckForMultipleUse value=".jpg" />
     <FoldersToCopy value="3">
       <Item1 value="css" />
       <Item2 value="script" />

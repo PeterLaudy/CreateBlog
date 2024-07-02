@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -12,7 +13,11 @@ namespace CreateBlog
     /// </summary>
     internal static class Utilities
     {
-         /// <summary>
+        /// <summary>List of images used so far.</summary>
+        /// <remarks>Used for caching and to check for multiple use of images.</remarks>
+        private static Dictionary<string, string> UsedImages { get; } = new();
+
+        /// <summary>
         /// Find the relative path to the given image file.
         /// </summary>
         /// <param name="imgFileName">The name of the image to file to which a relative link is requested.</param>
@@ -21,7 +26,29 @@ namespace CreateBlog
         {
             // Since we convert all filenames to lowercase, we also must make that same change here. 
             imgFileName = imgFileName.ToLower();
-            var imgFullName = FindImage(imgFileName, new DirectoryInfo(Settings.Single.SourceRootFolder!));
+
+            // Check if we cached the location of the image.
+            if (!UsedImages.TryGetValue(imgFileName, out var imgFullName))
+            {
+                imgFullName = FindImage(imgFileName, new DirectoryInfo(Settings.Single.SourceRootFolder!));
+                if (string.IsNullOrEmpty(imgFullName))
+                {
+                    throw new FileNotFoundException(imgFileName);
+                }
+
+                UsedImages[imgFileName] = imgFullName;
+            }
+            else
+            {
+                if (null != Settings.Single.ImagesToCheckForMultipleUse)
+                {
+                    if (Settings.Single.ImagesToCheckForMultipleUse!.Contains($";{Path.GetExtension(imgFileName)};"))
+                    {
+                        Utilities.LogMessage($"Image \"{imgFileName}\" is referenced multiple times.");
+                    }
+                }
+            }
+
             if (null != imgFullName)
             {
                 var img = Path.Combine(Settings.Single.HtmlRootFolder!, imgFullName!.Substring(Settings.Single.SourceRootFolder!.Length));

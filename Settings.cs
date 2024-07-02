@@ -59,6 +59,15 @@ namespace CreateBlog
             if (!ImageFolder!.EndsWith("\\"))
                 ImageFolder += "\\";
 
+            ImagesToCheckForMultipleUse = GetSetting<string>(settingsDoc, "//source/ImagesToCheckForMultipleUse");
+            if (null != ImagesToCheckForMultipleUse)
+            {
+                if (!ImagesToCheckForMultipleUse!.StartsWith(";"))
+                    ImagesToCheckForMultipleUse = $";{ImagesToCheckForMultipleUse}";
+                if (!ImagesToCheckForMultipleUse!.EndsWith(";"))
+                    ImagesToCheckForMultipleUse += ";";
+            }
+
             FoldersToCopy = GetListOfSetting<string>(settingsDoc, "//source/FoldersToCopy");
 
             HtmlRootFolder = GetSetting<string>(settingsDoc, "//html/RootFolder");
@@ -153,6 +162,11 @@ namespace CreateBlog
         /// The name of the subfolder containing the images.
         /// </summary>
         public string? ImageFolder { get; private set; }
+
+        /// <summary>
+        /// The extensions of image filenames to check for multiple use.
+        /// </summary>
+        public string? ImagesToCheckForMultipleUse { get; private set; } = string.Empty;
 
         /// <summary>
         /// The folders which content is copied as is.
