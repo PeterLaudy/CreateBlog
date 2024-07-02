@@ -278,7 +278,7 @@ namespace CreateBlog
                     var p = htmlDoc.CreateNodeWithAttributes("p", ["class"], ["body"]);
                     if (!string.IsNullOrEmpty(xmlNode.InnerXml.Trim())) {
                         div.AppendChild(p);
-                        p.InnerXml = xmlNode.InnerXml;
+                        p.InnerXml = Utilities.SetCorrectIndentForText(xmlNode.InnerXml, p);
                     }
 
                     if ((images.Count == 1) && (null != images[0].Attributes!.GetNamedItem("location")))
