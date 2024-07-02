@@ -6,8 +6,46 @@ using System.Text.Json;
 using System.Xml;
 using System.Xml.Linq;
 
+using SkiaSharp;
+
 namespace CreateBlog
 {
+    internal class ImageInfo
+    {
+        public ImageInfo(string fullFileName)
+        {
+            FileName = fullFileName;
+            IsRelativeFileName = false;
+            if ((null != Settings.Single.ImagesToCheckForMultipleUse) &&
+                (Settings.Single.ImagesToCheckForMultipleUse!.Contains($";{Path.GetExtension(fullFileName)};")))
+            {
+                using var info = SKCodec.Create(FileName);
+                Width = info.Info.Width;
+                Height = info.Info.Height;
+            }
+        }
+
+        public ImageInfo(ImageInfo absoluteImageInfo, string htmlFileName)
+        {
+            if (absoluteImageInfo.IsRelativeFileName)
+            {
+                throw new ArgumentException($"{nameof(ImageInfo)} needs to be absolute.");
+            }
+
+            var img = Path.Combine(Settings.Single.HtmlRootFolder!, absoluteImageInfo.FileName.Substring(Settings.Single.SourceRootFolder!.Length));
+
+            FileName = Path.GetRelativePath(Path.GetDirectoryName(htmlFileName)!, img!).Replace('\\', '/');
+            IsRelativeFileName = true;
+            Width = absoluteImageInfo.Width;
+            Height = absoluteImageInfo.Height;
+        }
+
+        public string FileName { get; }
+        public bool IsRelativeFileName { get; }
+        public int Width { get; }
+        public int Height { get; }
+    }
+
     /// <summary>
     /// Class containing utility methods for the application.
     /// </summary>
@@ -15,28 +53,29 @@ namespace CreateBlog
     {
         /// <summary>List of images used so far.</summary>
         /// <remarks>Used for caching and to check for multiple use of images.</remarks>
-        private static Dictionary<string, string> UsedImages { get; } = new();
+        private static Dictionary<string, ImageInfo> UsedImages { get; } = new();
 
         /// <summary>
         /// Find the relative path to the given image file.
         /// </summary>
         /// <param name="imgFileName">The name of the image to file to which a relative link is requested.</param>
         /// <param name="htmlFileName">The absolute path to the file in which the link will be included.</param>
-        public static string FindImage(string imgFileName, string htmlFileName)
+        public static ImageInfo FindImage(string imgFileName, string htmlFileName)
         {
             // Since we convert all filenames to lowercase, we also must make that same change here. 
             imgFileName = imgFileName.ToLower();
 
             // Check if we cached the location of the image.
-            if (!UsedImages.TryGetValue(imgFileName, out var imgFullName))
+            if (!UsedImages.TryGetValue(imgFileName, out var result))
             {
-                imgFullName = FindImage(imgFileName, new DirectoryInfo(Settings.Single.SourceRootFolder!));
+                var imgFullName = FindImage(imgFileName, new DirectoryInfo(Settings.Single.SourceRootFolder!));
                 if (string.IsNullOrEmpty(imgFullName))
                 {
                     throw new FileNotFoundException(imgFileName);
                 }
 
-                UsedImages[imgFileName] = imgFullName;
+                result = new(imgFullName);
+                UsedImages[imgFileName] = result;
             }
             else
             {
@@ -49,16 +88,16 @@ namespace CreateBlog
                 }
             }
 
-            if (null != imgFullName)
+            if (null != result)
             {
-                var img = Path.Combine(Settings.Single.HtmlRootFolder!, imgFullName!.Substring(Settings.Single.SourceRootFolder!.Length));
+                var img = Path.Combine(Settings.Single.HtmlRootFolder!, result.FileName.Substring(Settings.Single.SourceRootFolder!.Length));
                 if (!File.Exists(img!))
                 {
-                    LogMessage($"Copying image {imgFileName}");
-                    File.Copy(imgFullName!, img!, true);
+                    LogMessage($"Copying image {imgFileName} from {result.FileName} to {img!}");
+                    File.Copy(result.FileName, img!, true);
                 }
 
-                return Path.GetRelativePath(Path.GetDirectoryName(htmlFileName)!, img!).Replace('\\', '/');
+                return new(result, htmlFileName);
             }
 
             throw new FileNotFoundException("Image could not be found.", imgFileName, null);

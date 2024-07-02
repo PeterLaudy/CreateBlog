@@ -87,7 +87,7 @@ namespace CreateBlog
 
                             var p = htmlDoc.CreateNodeWithAttributes("p", [], []);
                             var a = htmlDoc.CreateNodeWithAttributes("a", ["class", "href"], ["no_decoration", link]);
-                            var img = htmlDoc.CreateNodeWithAttributes("img", ["class", "src"], ["icon", Utilities.FindImage(icon, indexFileName)]);
+                            var img = htmlDoc.CreateNodeWithAttributes("img", ["class", "src"], ["icon", Utilities.FindImage(icon, indexFileName).FileName]);
 
                             indexDiv.AppendChild(p);
                             p.AppendChild(a);
@@ -127,7 +127,7 @@ namespace CreateBlog
             // Create the link in the main blog page to the first page of the chapter.
             var p = htmlDoc.CreateNodeWithAttributes("p", [], []);
             var a = htmlDoc.CreateNodeWithAttributes("a", ["class", "href"], ["no_decoration", $"./{link}/page1.html"]);
-            var img = htmlDoc.CreateNodeWithAttributes("img", ["class", "src"], ["icon", Utilities.FindImage(icon, indexFileName)]);
+            var img = htmlDoc.CreateNodeWithAttributes("img", ["class", "src"], ["icon", Utilities.FindImage(icon, indexFileName).FileName]);
 
             indexDiv.AppendChild(p);
             p.AppendChild(a);
@@ -143,7 +143,7 @@ namespace CreateBlog
                 AvailablePages.Add(new PageInfo()
                 {
                     Link = $"{link}/page{index}.html",
-                    Icon = Utilities.FindImage(icon, Path.Combine(Settings.Single.HtmlRootFolder!, "new", "index.html")),
+                    Icon = Utilities.FindImage(icon, Path.Combine(Settings.Single.HtmlRootFolder!, "new", "index.html")).FileName,
                     Title = title
                 });
                 CreateBlogPage(
@@ -181,7 +181,7 @@ namespace CreateBlog
 
             htmlDoc.DocumentElement!.SelectSingleNode("/html/head/title")!.InnerText = title;
 
-            var image = htmlDoc.CreateNodeWithAttributes("img", ["class", "src"], ["icon", Utilities.FindImage(icon, fileName)]);
+            var image = htmlDoc.CreateNodeWithAttributes("img", ["class", "src"], ["icon", Utilities.FindImage(icon, fileName).FileName]);
 
             var titleNode = htmlDoc.DocumentElement!.SelectSingleNode("//p[@id='title']")!;
             titleNode.AppendChild(image);
@@ -210,7 +210,7 @@ namespace CreateBlog
             if (!prev && !next)
             {
                 var newLink = htmlDoc.CreateNodeWithAttributes("a", ["class", "href"], ["float-right", "../index.html"]);
-                newLink.AppendChild(htmlDoc.CreateNodeWithAttributes("img", ["class", "src"], ["icon", Utilities.FindImage("minibus.svg", fileName)]));
+                newLink.AppendChild(htmlDoc.CreateNodeWithAttributes("img", ["class", "src"], ["icon", Utilities.FindImage("minibus.svg", fileName).FileName]));
                 title.AppendChild(newLink);
             }
             else
@@ -219,15 +219,15 @@ namespace CreateBlog
                 title.ParentNode!.InsertAfter(navigation, title);
 
                 var newLink = htmlDoc.CreateNodeWithAttributes("a", ["class"], ["left"]);
-                newLink.AppendChild(htmlDoc.CreateNodeWithAttributes("img", ["class", "src"], ["icon", Utilities.FindImage("empty.svg", fileName)]));
+                newLink.AppendChild(htmlDoc.CreateNodeWithAttributes("img", ["class", "src"], ["icon", Utilities.FindImage("empty.svg", fileName).FileName]));
                 navigation.AppendChild(newLink);
 
                 newLink = htmlDoc.CreateNodeWithAttributes("a", ["class", "href"], ["center", "../index.html"]);
-                newLink.AppendChild(htmlDoc.CreateNodeWithAttributes("img", ["class", "src"], ["icon", Utilities.FindImage("minibus.svg", fileName)]));
+                newLink.AppendChild(htmlDoc.CreateNodeWithAttributes("img", ["class", "src"], ["icon", Utilities.FindImage("minibus.svg", fileName).FileName]));
                 navigation.AppendChild(newLink);
 
                 newLink = htmlDoc.CreateNodeWithAttributes("a", ["class"], ["right"]);
-                newLink.AppendChild(htmlDoc.CreateNodeWithAttributes("img", ["class", "src"], ["icon", Utilities.FindImage("empty.svg", fileName)]));
+                newLink.AppendChild(htmlDoc.CreateNodeWithAttributes("img", ["class", "src"], ["icon", Utilities.FindImage("empty.svg", fileName).FileName]));
                 navigation.AppendChild(newLink);
 
                 if (prev)
@@ -235,7 +235,7 @@ namespace CreateBlog
                     var attribute = htmlDoc.CreateAttribute("href");
                     attribute.Value = $"./page{index - 1}.html";
                     navigation.ChildNodes[0]!.Attributes!.Append(attribute);
-                    navigation.ChildNodes[0]!.ChildNodes[0]!.Attributes!["src"]!.Value = Utilities.FindImage("previous.svg", fileName);
+                    navigation.ChildNodes[0]!.ChildNodes[0]!.Attributes!["src"]!.Value = Utilities.FindImage("previous.svg", fileName).FileName;
                 }
 
                 if (next)
@@ -243,7 +243,7 @@ namespace CreateBlog
                     var attribute = htmlDoc.CreateAttribute("href");
                     attribute.Value = $"./page{index + 1}.html";
                     navigation.ChildNodes[2]!.Attributes!.Append(attribute);
-                    navigation.ChildNodes[2]!.ChildNodes[0]!.Attributes!["src"]!.Value = Utilities.FindImage("next.svg", fileName);
+                    navigation.ChildNodes[2]!.ChildNodes[0]!.Attributes!["src"]!.Value = Utilities.FindImage("next.svg", fileName).FileName;
                 }
             }
         }
@@ -281,47 +281,7 @@ namespace CreateBlog
                         p.InnerXml = Utilities.SetCorrectIndentForText(xmlNode.InnerXml, p);
                     }
 
-                    if ((images.Count == 1) && (null != images[0].Attributes!.GetNamedItem("location")))
-                    {
-                        var scale = images[0].Attributes!["scale"]?.Value;
-                        if (string.IsNullOrEmpty(scale))
-                        {
-                            scale = "25";
-                        }
-
-                        // Only 1 small image, surrounded by text.
-                        var span = htmlDoc.CreateNodeWithAttributes(
-                            "span",
-                            ["class"],
-                            [$"image-{images[0].Attributes!["location"]!.Value} scale{scale}"]);
-                        p.InsertAfter(span, null);
-
-                        var img = htmlDoc.CreateNodeWithAttributes(
-                            "img",
-                            ["class", "src", "alt"],
-                            ["zoom scale", Utilities.FindImage(images[0].InnerText, fileName), images[0].Attributes?["alt"]?.Value]);
-                        span.AppendChild(img);
-                    }
-                    else
-                    {
-                        // We have found more than 1 image, or the single image is to be displayed over the full width.
-                        // We are laying them out in a flex div.
-                        if (images.Count > 0)
-                        {
-                            var flexDiv = htmlDoc.CreateNodeWithAttributes("div", ["class"], ["flex"]);
-                            div.InsertAfter(flexDiv, null);
-
-                            images.ForEach(image =>
-                            {
-                                var imgDiv = htmlDoc.CreateNodeWithAttributes("div", [], []);
-                                flexDiv.AppendChild(imgDiv);
-                                imgDiv.AppendChild(htmlDoc.CreateNodeWithAttributes(
-                                    "img",
-                                    ["class", "src", "alt"],
-                                    ["zoom scale", Utilities.FindImage(image.InnerText, fileName), image.Attributes?["alt"]?.Value]));
-                            });
-                        }
-                    }
+                    AddImagesToContent(images, htmlDoc, fileName, p);
                 }
                 else
                 {
@@ -333,21 +293,58 @@ namespace CreateBlog
                         var flexDiv = htmlDoc.CreateNodeWithAttributes("div", ["class"], ["flex"]);
                         div.AppendChild(flexDiv);
 
-                        images.ForEach(image =>
-                        {
-                            var imgDiv = htmlDoc.CreateNodeWithAttributes("div", [], []);
-                            flexDiv.AppendChild(imgDiv);
-                            imgDiv.AppendChild(htmlDoc.CreateNodeWithAttributes(
-                                "img",
-                                ["class", "src", "alt"],
-                                ["zoom scale", Utilities.FindImage(image.InnerText, fileName), image.Attributes?["alt"]?.Value]));
-                        });
+                        AddImagesToContent(images, htmlDoc, fileName, div);
                     }
                 }
 
                 if (null != xmlNode)
                 {
                     xmlNode = xmlNode.NextSibling;
+                }
+            }
+        }
+
+        private void AddImagesToContent(List<XmlNode> images, XmlDocument htmlDoc, string fileName, XmlNode parent)
+        {
+            if ((images.Count == 1) && (null != images[0].Attributes!.GetNamedItem("location")))
+            {
+                var scale = images[0].Attributes!["scale"]?.Value;
+                if (string.IsNullOrEmpty(scale))
+                {
+                    scale = "25";
+                }
+
+                // Only 1 small image, surrounded by text.
+                var span = htmlDoc.CreateNodeWithAttributes(
+                    "span",
+                    ["class"],
+                    [$"image-{images[0].Attributes!["location"]!.Value} scale{scale}"]);
+                parent.InsertAfter(span, null);
+
+                var img = htmlDoc.CreateNodeWithAttributes(
+                    "img",
+                    ["class", "src", "alt"],
+                    ["zoom scale", Utilities.FindImage(images[0].InnerText, fileName).FileName, images[0].Attributes?["alt"]?.Value]);
+                span.AppendChild(img);
+            }
+            else
+            {
+                // We have found more than 1 image, or the single image is to be displayed over the full width.
+                // We are laying them out in a flex div.
+                if (images.Count > 0)
+                {
+                    var flexDiv = htmlDoc.CreateNodeWithAttributes("div", ["class"], ["flex"]);
+                    parent.InsertAfter(flexDiv, null);
+
+                    images.ForEach(image =>
+                    {
+                        var imgDiv = htmlDoc.CreateNodeWithAttributes("div", [], []);
+                        flexDiv.AppendChild(imgDiv);
+                        imgDiv.AppendChild(htmlDoc.CreateNodeWithAttributes(
+                            "img",
+                            ["class", "src", "alt"],
+                            ["zoom scale", Utilities.FindImage(image.InnerText, fileName).FileName, image.Attributes?["alt"]?.Value]));
+                    });
                 }
             }
         }
