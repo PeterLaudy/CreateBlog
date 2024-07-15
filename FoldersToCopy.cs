@@ -62,7 +62,8 @@ namespace CreateBlog
             RandomizedFiles.Clear();
             contentCreators.ForEach(cc =>
             {
-                cc.GetFilesToRename.Keys.ToList().ForEach(key => {
+                cc.GetFilesToRename.Keys.ToList().ForEach(key =>
+                {
                     RandomizedFiles.Add(key, cc.GetFilesToRename[key]);
                 });
             });

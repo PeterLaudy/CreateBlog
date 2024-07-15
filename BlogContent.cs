@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Xml;
 
 namespace CreateBlog
@@ -29,11 +30,18 @@ namespace CreateBlog
 
         private string AvailablePagesFileName { get; } = $"availablePages-{Guid.NewGuid()}.json";
 
+        private Dictionary<string, ImageDivCss> Css { get; } = new();
+
+        private string CssFileName { get; } = $"images-{Guid.NewGuid()}.css";
+
         public Dictionary<string, string> GetFilesToRename
         {
             get
             {
-                return new() { { "availablePages.json", AvailablePagesFileName } };
+                return new() {
+                    { "availablePages.json", AvailablePagesFileName },
+                    { "images.css", CssFileName }
+                };
             }
         }
 
@@ -50,7 +58,7 @@ namespace CreateBlog
         {
             this.foldersToCopy = foldersToCopy;
 
-            Utilities.LogMessage($"Crteating blog content for {Settings.Single.SourceRootFolder!}");
+            Utilities.LogMessage($"Creating blog content for {Settings.Single.SourceRootFolder!}");
 
             var indexFileName = Path.Combine(Settings.Single.SourceRootFolder!, "index.xml");
 
@@ -106,6 +114,9 @@ namespace CreateBlog
 
             // Save the JSON formatted list of available links.
             Utilities.SaveJsonFile(AvailablePages.ToArray(), Path.Combine(Settings.Single.HtmlRootFolder!, "script", AvailablePagesFileName));
+
+            // Save the JSON formatted list of available links.
+            Utilities.SaveCssFile(Css.Values.ToList(), Path.Combine(Settings.Single.HtmlRootFolder!, "css", CssFileName));
         }
 
         /// <summary>
@@ -276,7 +287,8 @@ namespace CreateBlog
                     contentDiv.AppendChild(div);
 
                     var p = htmlDoc.CreateNodeWithAttributes("p", ["class"], ["body"]);
-                    if (!string.IsNullOrEmpty(xmlNode.InnerXml.Trim())) {
+                    if (!string.IsNullOrEmpty(xmlNode.InnerXml.Trim()))
+                    {
                         div.AppendChild(p);
                         p.InnerXml = Utilities.SetCorrectIndentForText(xmlNode.InnerXml, p);
                     }
@@ -304,6 +316,13 @@ namespace CreateBlog
             }
         }
 
+        /// <summary>
+        /// Add the images found in the source file to the HTML file.
+        /// </summary>
+        /// <param name="images">The nodes describing the images as found in the XML source file.</param>
+        /// <param name="htmlDoc">The HTML document in which the images are placed.</param>
+        /// <param name="fileName">The filename of the HTML document, so we can create a relative path to the image.</param>
+        /// <param name="parent">The node to which we add the images.</param>
         private void AddImagesToContent(List<XmlNode> images, XmlDocument htmlDoc, string fileName, XmlNode parent)
         {
             if ((images.Count == 1) && (null != images[0].Attributes!.GetNamedItem("location")))
@@ -333,18 +352,32 @@ namespace CreateBlog
                 // We are laying them out in a flex div.
                 if (images.Count > 0)
                 {
+                    var imageInfoList = new ImageInfoList();
+                    images.ForEach(img =>
+                    {
+                        var imgInfo = Utilities.FindImage(img.InnerText, fileName, img);
+                        imageInfoList.Add(imgInfo);
+                    });
+
                     var flexDiv = htmlDoc.CreateNodeWithAttributes("div", ["class"], ["flex"]);
                     parent.InsertAfter(flexDiv, null);
 
-                    images.ForEach(image =>
+                    imageInfoList.SetCSS();
+                    foreach (ImageInfo image in imageInfoList)
                     {
-                        var imgDiv = htmlDoc.CreateNodeWithAttributes("div", [], []);
-                        flexDiv.AppendChild(imgDiv);
-                        imgDiv.AppendChild(htmlDoc.CreateNodeWithAttributes(
+                        if (!Css.ContainsKey(image.CssForDiv!.Class))
+                        {
+                            Css.Add(image.CssForDiv!.Class, image.CssForDiv!);
+                        }
+
+                        var imgDiv = htmlDoc.CreateNodeWithAttributes("div", ["class"], [$"{image.CssForDiv!.Class}"]);
+                        flexDiv!.AppendChild(imgDiv);
+                        var img = htmlDoc.CreateNodeWithAttributes(
                             "img",
                             ["class", "src", "alt"],
-                            ["zoom scale", Utilities.FindImage(image.InnerText, fileName).FileName, image.Attributes?["alt"]?.Value]));
-                    });
+                            ["zoom scale", image.FileName, image.ImgNode?.Attributes?["alt"]?.Value]);
+                        imgDiv!.AppendChild(img);
+                    }
                 }
             }
         }

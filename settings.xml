@@ -11,6 +11,7 @@
     </FoldersToCopy>
   </source>
   <html>
+    <TopURL value="https://www.zestien3.nl/blog" />
     <RootFolder value="D:\TestBlog\blog" />
     <IndentChars value="  " />
   </html>

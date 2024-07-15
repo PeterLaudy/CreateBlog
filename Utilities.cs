@@ -6,46 +6,8 @@ using System.Text.Json;
 using System.Xml;
 using System.Xml.Linq;
 
-using SkiaSharp;
-
 namespace CreateBlog
 {
-    internal class ImageInfo
-    {
-        public ImageInfo(string fullFileName)
-        {
-            FileName = fullFileName;
-            IsRelativeFileName = false;
-            if ((null != Settings.Single.ImagesToCheckForMultipleUse) &&
-                (Settings.Single.ImagesToCheckForMultipleUse!.Contains($";{Path.GetExtension(fullFileName)};")))
-            {
-                using var info = SKCodec.Create(FileName);
-                Width = info.Info.Width;
-                Height = info.Info.Height;
-            }
-        }
-
-        public ImageInfo(ImageInfo absoluteImageInfo, string htmlFileName)
-        {
-            if (absoluteImageInfo.IsRelativeFileName)
-            {
-                throw new ArgumentException($"{nameof(ImageInfo)} needs to be absolute.");
-            }
-
-            var img = Path.Combine(Settings.Single.HtmlRootFolder!, absoluteImageInfo.FileName.Substring(Settings.Single.SourceRootFolder!.Length));
-
-            FileName = Path.GetRelativePath(Path.GetDirectoryName(htmlFileName)!, img!).Replace('\\', '/');
-            IsRelativeFileName = true;
-            Width = absoluteImageInfo.Width;
-            Height = absoluteImageInfo.Height;
-        }
-
-        public string FileName { get; }
-        public bool IsRelativeFileName { get; }
-        public int Width { get; }
-        public int Height { get; }
-    }
-
     /// <summary>
     /// Class containing utility methods for the application.
     /// </summary>
@@ -60,7 +22,32 @@ namespace CreateBlog
         /// </summary>
         /// <param name="imgFileName">The name of the image to file to which a relative link is requested.</param>
         /// <param name="htmlFileName">The absolute path to the file in which the link will be included.</param>
-        public static ImageInfo FindImage(string imgFileName, string htmlFileName)
+        public static ImageInfo? FindOpenGraphImage(XmlElement html)
+        {
+            ImageInfo? result = null;
+            var ogImgMeta = html.SelectSingleNode("/html/head/meta[@property='og:image']");
+            if (null != ogImgMeta)
+            {
+                var img = ogImgMeta.Attributes?["content"]?.Value;
+                if (null != img)
+                {
+                    if (img!.ToLower().StartsWith(Settings.Single.TopURL!.ToLower()))
+                    {
+                        LogMessage($"Found Open Graph preview image: {img}");
+                        result = FindImage(img.Substring(img.LastIndexOf("/") + 1), string.Empty);
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Find the relative path to the given image file.
+        /// </summary>
+        /// <param name="imgFileName">The name of the image to file to which a relative link is requested.</param>
+        /// <param name="htmlFileName">The absolute path to the file in which the link will be included.</param>
+        public static ImageInfo FindImage(string imgFileName, string htmlFileName, XmlNode? imgNode = null)
         {
             // Since we convert all filenames to lowercase, we also must make that same change here. 
             imgFileName = imgFileName.ToLower();
@@ -97,7 +84,14 @@ namespace CreateBlog
                     File.Copy(result.FileName, img!, true);
                 }
 
-                return new(result, htmlFileName);
+                if (string.IsNullOrEmpty(htmlFileName))
+                {
+                    return result;
+                }
+                else
+                {
+                    return new(result, htmlFileName, imgNode);
+                }
             }
 
             throw new FileNotFoundException("Image could not be found.", imgFileName, null);
@@ -163,6 +157,8 @@ namespace CreateBlog
         {
             LogMessage($"Saving HTML file {fileName}");
 
+            FindOpenGraphImage(htmlDoc.DocumentElement!);
+
             if (!Directory.Exists(Path.GetDirectoryName(fileName)))
             {
                 LogMessage($"Creating directory {Path.GetDirectoryName(fileName)!}");
@@ -198,6 +194,28 @@ namespace CreateBlog
             var jsonData = JsonSerializer.Serialize(data);
             using var writer = new StreamWriter(fileName);
             writer.WriteLine(jsonData);
+            writer.Close();
+
+            LogMessage(string.Empty);
+        }
+
+        /// <summary>
+        /// Save the css content to file.
+        /// </summary>
+        /// <param name="css">The data to save to file in CSS format.</param>
+        /// <param name="fileName">The full path to the CSS file.</param>
+        public static void SaveCssFile(List<ImageDivCss> css, string fileName)
+        {
+            LogMessage($"Saving CSS file {fileName}");
+
+            if (!Directory.Exists(Path.GetDirectoryName(fileName)))
+            {
+                LogMessage($"Creating directory {Path.GetDirectoryName(fileName)!}");
+                Directory.CreateDirectory(Path.GetDirectoryName(fileName)!);
+            }
+
+            using var writer = new StreamWriter(fileName);
+            css.ForEach(s => { writer.WriteLine(s.CSS); });
             writer.Close();
 
             LogMessage(string.Empty);

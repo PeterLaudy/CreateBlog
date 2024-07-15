@@ -70,6 +70,7 @@ namespace CreateBlog
 
             FoldersToCopy = GetListOfSetting<string>(settingsDoc, "//source/FoldersToCopy");
 
+            TopURL = GetSetting<string>(settingsDoc, "//html/TopURL");
             HtmlRootFolder = GetSetting<string>(settingsDoc, "//html/RootFolder");
             if (!HtmlRootFolder!.EndsWith("\\"))
                 HtmlRootFolder += "\\";
@@ -172,6 +173,11 @@ namespace CreateBlog
         /// The folders which content is copied as is.
         /// </summary>
         public List<string>? FoldersToCopy { get; private set; }
+
+        /// <summary>
+        /// The top URL of the blog.
+        /// </summary>
+        public string? TopURL { get; private set; }
 
         /// <summary>
         /// The rootfolder on disk where the blog is written to.
